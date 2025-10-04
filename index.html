@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mattelsa — NFT Shop (Demo Local)</title>
+<meta name="description" content="Vitrina e-commerce estilo Mattelsa — NFTs de prendas: mint, comprar, VIP, assets digitales. Demo 100% local." />
+<style>
+  /* ===== Estilo inspirado en Mattelsa: limpio, minimalista, colores neutros ===== */
+  :root{
+    --bg:#ffffff;
+    --muted:#6b7280;
+    --ink:#0f172a;
+    --accent:#1f2937;       /* color texto principal */
+    --brand:#0f6b8b;        /* azul/verde tenue */
+    --card:#f8fafc;
+    --price:#111827;
+    --accent-soft:#e6f6fb;
+    --success:#047857;
+    --danger:#b91c1c;
+    --glass: rgba(15,23,42,0.06);
+    font-family: Inter, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+  header{background:linear-gradient(90deg,var(--brand),#0baea6);color:white;padding:20px 24px}
+  header h1{margin:0;font-size:20px;letter-spacing:.2px}
+  header p{margin:6px 0 0 0;opacity:.95;font-size:13px}
+  .container{max-width:1100px;margin:22px auto;padding:0 16px}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+  .btn{background:var(--brand);border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+  .btn.ghost{background:white;color:var(--brand);border:1px solid var(--brand)}
+  .btn.small{padding:6px 8px;font-size:13px}
+  .shop-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .wallet{background:var(--card);padding:10px;border-radius:10px;border:1px solid #eef2f7;min-width:220px}
+  .wallet h4{margin:0 0 6px 0;font-size:14px}
+  .muted{color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:18px}
+  .card{background:white;border-radius:12px;border:1px solid #eef2f7;padding:14px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 0 rgba(15,23,42,0.02)}
+  .media{height:260px;background:linear-gradient(180deg,#fafafa,#f5f7f8);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .media img{max-width:100%;max-height:100%;object-fit:contain}
+  .title{font-weight:700;color:var(--accent);font-size:15px}
+  .subtitle{font-size:13px;color:var(--muted)}
+  .price{font-weight:800;color:var(--price);font-size:16px}
+  .meta{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .actions{display:flex;gap:8px}
+  .pill{padding:6px 8px;border-radius:999px;background:var(--accent-soft);font-size:12px;color:var(--brand);border:1px solid rgba(15,23,42,0.04)}
+  .badge{background:#111827;color:white;padding:6px 8px;border-radius:8px;font-size:12px}
+  /* modal */
+  .modal-back{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:flex;align-items:center;justify-content:center;z-index:60}
+  .modal{background:white;border-radius:12px;padding:18px;max-width:920px;width:94%;box-shadow:0 8px 30px rgba(2,6,23,0.4);display:grid;grid-template-columns:1fr 380px;gap:16px;max-height:86vh;overflow:auto}
+  .modal .media{height:360px}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;font-size:13px;color:var(--muted)}
+  footer{padding:18px 0;text-align:center;color:var(--muted);font-size:13px}
+  /* responsive */
+  @media (max-width:820px){ .modal{grid-template-columns:1fr} .media{height:280px} .wallet{min-width:unset} }
+  /* small helpers */
+  .muted-sm{color:var(--muted);font-size:12px}
+  .input{padding:8px;border:1px solid #e6eef2;border-radius:8px}
+  .strike{text-decoration:line-through;color:var(--muted)}
+  .success{color:var(--success)}
+  .danger{color:var(--danger)}
+  a.link{color:var(--brand);text-decoration:none;font-weight:600}
+  /* accessible focus */
+  button:focus, [role="button"]:focus, a:focus {outline:3px solid rgba(15,95,129,0.12);outline-offset:2px;border-radius:6px}
+</style>
+</head>
+<body>
+<header role="banner" aria-label="Cabecera tienda">
+  <div class="container">
+    <h1>Mattelsa — NFT Shop (Demo local)</h1>
+    <p>Vista tipo e-commerce inspirada en Mattelsa. NFTs de prendas: compra, mint, VIP y assets para avatar (simulado, sin blockchain real).</p>
+  </div>
+</header>
+
+<main class="container" role="main">
+  <div class="shop-head" aria-hidden="false">
+    <div>
+      <div class="muted">Colección — Human Engineering</div>
+      <h2 style="margin:6px 0 0 0">Edición Digital · Prendas NFT</h2>
+    </div>
+
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="wallet" role="region" aria-label="Wallet del usuario">
+        <h4 id="walletName">Cartera demo</h4>
+        <div class="muted-sm">Saldo UCOIN: <strong id="walletBalance">0</strong></div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button class="btn small" id="topUpBtn">Recargar +100</button>
+          <button class="btn small ghost" id="exportBtn">Exportar wallet</button>
+        </div>
+      </div>
+      <div style="min-width:220px;background:transparent;">
+        <div class="muted-sm">Estado VIP</div>
+        <div style="margin-top:6px">
+          <span id="vipBadge" class="pill" aria-live="polite">No VIP</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar" role="toolbar" aria-label="Herramientas">
+    <button class="btn" id="mintAllBtn">Mintear todos (batch)</button>
+    <button class="btn ghost" id="toggleTheme">Tema claro</button>
+    <div style="margin-left:auto" class="muted-sm">Demo local — datos en <code>localStorage</code></div>
+  </div>
+
+  <!-- Grid de productos -->
+  <section class="grid" id="productsGrid" aria-label="Productos"></section>
+
+  <!-- Modal detail -->
+  <div id="modalRoot" aria-live="polite"></div>
+
+  <details style="margin-top:20px">
+    <summary>¿Qué hace esta demo?</summary>
+    <div style="margin-top:8px" class="muted">
+      <ol>
+        <li>Cada prenda es un NFT simulado con <strong>tokenId (UUID)</strong> y <strong>sha256</strong> como huella.</li>
+        <li>Puedes <em>mint</em> (emitir) y comprar usando UCOIN. Si ya eres holder de un NFT se aplica un descuento VIP automáticamente.</li>
+        <li>Puedes descargar el asset digital (JSON) para usar como avatar o guardarlo en tu máquina.</li>
+        <li>Todo es local: no hay transacciones reales ni almacenamiento en servidores externos.</li>
+      </ol>
+    </div>
+  </details>
+
+  <hr style="margin:20px 0;border:none;border-top:1px solid #f1f5f9" />
+
+  <section aria-label="Actividad">
+    <h3 style="margin:0 0 8px 0">Actividad (últimos eventos)</h3>
+    <div id="activityLog" class="mono muted-sm" style="background:var(--glass);padding:12px;border-radius:8px;min-height:54px"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">Demo local — no es una plataforma de venta real. Diseñado para presentación y pruebas.</div>
+</footer>
+
+<script>
+/* =========================
+   Demo NFT Shop — JavaScript
+   100% local: state en localStorage
+   ========================= */
+
+/* ---------- Utilidades ---------- */
+
+// Generador UUID v4 simple
+function uuidv4(){
+  // RFC4122 version 4 compliant-ish generator (sufficient for demo)
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+    const r = crypto.getRandomValues(new Uint8Array(1))[0] & 15;
+    const v = c==='x'? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// SHA-256 -> hex usando Web Crypto
+async function sha256Hex(str){
+  const enc = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest('SHA-256', enc);
+  const arr = Array.from(new Uint8Array(hash));
+  return arr.map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// descarga de archivo
+function downloadFile(name, content, mime='application/json'){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=name; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- Datos iniciales (productos) ---------- */
+/* NOTA: las imágenes son ilustrativas. Reemplaza "img" con URLs reales si lo deseas. */
+
+const PRODUCTS_SEED = [
+  {
+    sku: "BUZO_WHITE_ZIP",
+    name: "Buzo White Zip",
+    desc: "Buzo blanco con línea negra en mangas y logo 'Human Eng'.",
+    priceCOP: 219000,
+    category: "Buzo",
+    img: "", // si quieres, reemplaza con URL: 'images/buzo1.jpg'
+    meta: { color: "blanco", size:"único", type:"hoodie-zip" }
+  },
+  {
+    sku: "CAMISETA_WHITE_RINGER",
+    name: "Camiseta White Ringer",
+    desc: "Camiseta blanca con ribetes negros y estampado central.",
+    priceCOP: 119000,
+    category: "Camiseta",
+    img: "",
+    meta: { color:"blanco", size:"S/M/L", type:"tee" }
+  },
+  {
+    sku: "JEANS_GREY_WASH",
+    name: "Jeans Grey Wash",
+    desc: "Jeans gris desgastado, corte clásico.",
+    priceCOP: 189000,
+    category: "Jeans",
+    img: "",
+    meta: { color:"gris", size:"30/32/34", type:"jeans" }
+  },
+  {
+    sku: "BUZO_CREMA_HOOD",
+    name: "Buzo Crema Hood",
+    desc: "Hoodie crema con capota vinotinto y logo 'HUMAN ENG'.",
+    priceCOP: 259000,
+    category: "Buzo",
+    img: "",
+    meta: { color:"crema", size:"único", type:"hoodie" }
+  }
+];
+
+/* ---------- Estado local ---------- */
+const LSK = 'mattelsa_nft_shop_state_v1';
+let state = {
+  wallet: { name: 'Usuario Demo', balance: 0, holds: [] }, // holds: array of tokenIds owned
+  products: [],    // will include token metadata if minted
+  tokens: [],      // tokens minted (metadata objects)
+  activity: []     // log strings
+};
+
+// cargar estado
+function loadState(){
+  try{
+    const raw = localStorage.getItem(LSK);
+    if(raw) state = JSON.parse(raw);
+  }catch(e){
+    console.warn('No se pudo parsear state', e);
+  }
+}
+
+// guardar estado
+function saveState(){
+  localStorage.setItem(LSK, JSON.stringify(state));
+}
+
+/* ---------- Inicialización ---------- */
+
+function initSeed(){
+  loadState();
+  if(!state.products || !state.products.length){
+    // marcar seed de productos (aun no minteados)
+    state.products = PRODUCTS_SEED.map(p => ({ ...p, minted: false, tokenId: null }));
+    state.wallet = state.wallet || { name: 'Usuario Demo', balance: 0, holds: [] };
+    logActivity('Inicializada tienda con catálogo seed.');
+    saveState();
+  }
+  renderAll();
+}
+
+/* ---------- Logging / actividad ---------- */
+function logActivity(msg){
+  const ts = new Date().toLocaleString();
+  state.activity.unshift(`[${ts}] ${msg}`);
+  // mantener último 80 items
+  state.activity = state.activity.slice(0,80);
+  saveState();
+  renderActivity();
+}
+
+function renderActivity(){
+  const el = document.getElementById('activityLog');
+  el.textContent = state.activity.slice(0,8).join('\n') || 'Sin actividad reciente.';
+}
+
+/* ---------- Render UI (productos) ---------- */
+
+function moneyCOP(n){
+  return n.toLocaleString('es-CO',{style:'currency',currency:'COP',minimumFractionDigits:0});
+}
+
+function renderAll(){
+  renderProducts();
+  renderWallet();
+  renderActivity();
+}
+
+function renderWallet(){
+  document.getElementById('walletBalance').textContent = `${state.wallet.balance} UCOIN`;
+  document.getElementById('walletName').textContent = state.wallet.name;
+  const vipBadge = document.getElementById('vipBadge');
+  // VIP if holds any token OR if holds a token with VIP flag; for demo: hold >=1 => VIP
+  const isVip = state.wallet.holds.length > 0;
+  vipBadge.textContent = isVip ? `VIP • ${state.wallet.holds.length} NFTs` : 'No VIP';
+  vipBadge.className = isVip ? 'pill success' : 'pill';
+}
+
+function renderProducts(){
+  const grid = document.getElementById('productsGrid');
+  grid.innerHTML = '';
+  state.products.forEach((p, idx) => {
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.setAttribute('role','article');
+    card.setAttribute('aria-labelledby', `p-${idx}-title`);
+
+    // media placeholder (if no image, show styled placeholder)
+    const media = document.createElement('div'); media.className = 'media';
+    if(p.img){
+      const img = document.createElement('img'); img.src = p.img; img.alt = p.name;
+      media.appendChild(img);
+    } else {
+      // placeholder SVG
+      const svg = `<svg width="240" height="200" viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${p.name}">
+        <rect width="100%" height="100%" fill="#fff"/>
+        <g fill="none" stroke="#e6eef2" stroke-width="1"><rect x="8" y="8" width="224" height="184" rx="6"></rect></g>
+        <text x="50%" y="48%" text-anchor="middle" fill="#cbd5e1" font-size="18" font-family="sans-serif">${p.name}</text>
+        <text x="50%" y="64%" text-anchor="middle" fill="#e6eef2" font-size="12" font-family="sans-serif">${p.category}</text>
+      </svg>`;
+      media.innerHTML = svg;
+    }
+    card.appendChild(media);
+
+    // info
+    const title = document.createElement('div'); title.className='title'; title.id = `p-${idx}-title`; title.textContent = p.name;
+    card.appendChild(title);
+
+    const subtitle = document.createElement('div'); subtitle.className='subtitle muted-sm'; subtitle.textContent = p.desc;
+    card.appendChild(subtitle);
+
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const priceWrap = document.createElement('div'); priceWrap.innerHTML = `<div class="price">${moneyCOP(p.priceCOP)}</div>`;
+    meta.appendChild(priceWrap);
+
+    const badge = document.createElement('div');
+    badge.innerHTML = p.minted ? `<span class="badge">NFT • ${p.tokenId ? p.tokenId.slice(0,8) : ''}</span>` : `<span class="pill">Edición digital</span>`;
+    meta.appendChild(badge);
+
+    card.appendChild(meta);
+
+    // actions
+    const actions = document.createElement('div'); actions.className = 'actions';
+    const viewBtn = document.createElement('button'); viewBtn.className='btn small ghost'; viewBtn.textContent='Ver'; viewBtn.onclick = ()=> openProductModal(idx);
+    actions.appendChild(viewBtn);
+
+    const mintBtn = document.createElement('button'); mintBtn.className='btn small'; mintBtn.textContent = p.minted ? 'Re-mint (no recomendado)' : 'Mint / Emitir NFT';
+    mintBtn.onclick = ()=> mintProduct(idx);
+    actions.appendChild(mintBtn);
+
+    const buyBtn = document.createElement('button'); buyBtn.className='btn small ghost'; buyBtn.textContent = 'Comprar';
+    buyBtn.onclick = ()=> buyProduct(idx);
+    actions.appendChild(buyBtn);
+
+    card.appendChild(actions);
+
+    grid.appendChild(card);
+  });
+}
+
+/* ---------- Operaciones: Mint, Buy, TopUp, Export ---------- */
+
+async function mintProduct(index){
+  const p = state.products[index];
+  if(p.minted){
+    if(!confirm('Este producto ya fue minteado. ¿Deseas crear otro token (mint adicional)?')) return;
+  }
+  // crear metadata
+  const tokenId = 'NFT-' + uuidv4();
+  const metadata = {
+    tokenId,
+    sku: p.sku,
+    name: p.name,
+    description: p.desc,
+    priceCOP: p.priceCOP,
+    issuedAt: new Date().toISOString(),
+    meta: p.meta,
+    issuer: 'MATTELSA-DEMO',
+    edition: p.minted ? ( (p.edition||1) + 1) : 1
+  };
+  const fingerprint = await sha256Hex(JSON.stringify(metadata));
+  metadata.fingerprint = fingerprint;
+
+  // registrar token en estado
+  p.minted = true;
+  p.tokenId = tokenId;
+  p.tokenMeta = metadata;
+  state.tokens.push(metadata);
+
+  logActivity(`Mint: ${p.name} -> ${tokenId} (hash ${fingerprint.slice(0,10)}...)`);
+  saveState();
+  renderAll();
+
+  // mostrar opción de descargar metadata
+  if(confirm('NFT creado. ¿Deseas descargar el metadata JSON?')){
+    downloadFile(`${tokenId}.json`, JSON.stringify(metadata, null, 2), 'application/json');
+  }
+}
+
+function getPriceWithDiscount(product){
+  // regla de descuento: si wallet holds >=1 => 10% de descuento VIP
+  const isVip = state.wallet.holds.length > 0;
+  const vipDiscount = isVip ? 0.10 : 0;
+  // si ya eres owner del mismo token, ofrecer 30% adicional para "coleccionistas" (demo)
+  let extra = 0;
+  if(product.tokenId && state.wallet.holds.includes(product.tokenId)) extra = 0.30;
+  const finalPrice = Math.round(product.priceCOP * (1 - vipDiscount - extra));
+  return {finalPrice, vipDiscount, extra};
+}
+
+function buyProduct(index){
+  const p = state.products[index];
+  // must be minted before purchase in this demo (simulate mint then buy as separate actions)
+  if(!p.minted){
+    if(!confirm('Producto aún no minteado como NFT. Primero se creará el NFT (mint) y luego se procederá a la compra. ¿Continuar?')) return mintProduct(index);
+  }
+  const priceInfo = getPriceWithDiscount(p);
+  const price = priceInfo.finalPrice;
+
+  if(state.wallet.balance < price){
+    alert(`Saldo insuficiente. Precio: ${moneyCOP(price)}. Recarga tu saldo.`);
+    return;
+  }
+
+  // simular transferencia: debitar y asignar token al wallet
+  state.wallet.balance -= price;
+  state.wallet.holds.push(p.tokenId);
+  // crear registro de venta en activity
+  logActivity(`Compra: ${p.name} (${p.tokenId}) pagado ${moneyCOP(price)}. (Descuento aplicado ${(priceInfo.vipDiscount+priceInfo.extra)*100}%)`);
+  saveState();
+  renderAll();
+
+  // entregar un "asset" descargable (simulado): una imagen básica o JSON
+  if(confirm('Compra completa. ¿Descargar asset digital para avatar?')){
+    // generar JSON con metadata + claim
+    const asset = {
+      tokenId: p.tokenId,
+      name: p.name,
+      owner: state.wallet.name,
+      claimedAt: new Date().toISOString(),
+      avatarPreview: `Avatar placeholder for ${p.name}`
+    };
+    downloadFile(`${p.tokenId}_asset.json`, JSON.stringify(asset, null, 2), 'application/json');
+  }
+}
+
+document.getElementById('topUpBtn').addEventListener('click', ()=>{
+  state.wallet.balance += 100; // recarga fija demo
+  logActivity('Recarga +100 UCOIN');
+  saveState(); renderAll();
+});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  downloadFile('wallet_export.json', JSON.stringify(state.wallet, null, 2), 'application/json');
+  logActivity('Exportado wallet JSON');
+});
+
+/* Mint all */
+document.getElementById('mintAllBtn').addEventListener('click', async ()=>{
+  if(!confirm('Mintear todos los productos (si alguno ya está minteado se re-mintará). ¿Continuar?')) return;
+  for(let i=0;i<state.products.length;i++){
+    // small delay to allow crypto operations
+    // eslint-disable-next-line no-await-in-loop
+    await mintProduct(i);
+  }
+  logActivity('Batch mint completo.');
+});
+
+/* Toggle theme (simple visual) */
+document.getElementById('toggleTheme').addEventListener('click', ()=>{
+  const btn = document.getElementById('toggleTheme');
+  if(document.body.style.background === 'rgb(15,23,42)'){
+    document.body.style.background='';
+    btn.textContent = 'Tema claro';
+  } else {
+    document.body.style.background = '#0f172a';
+    btn.textContent = 'Tema oscuro (demo)';
+  }
+});
+
+/* ---------- Modal detalle del producto ---------- */
+
+function openProductModal(index){
+  const p = state.products[index];
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = ''; // close existing
+
+  const back = document.createElement('div'); back.className='modal-back';
+  back.tabIndex = 0;
+  back.onclick = (e)=>{ if(e.target === back) closeModal(); };
+
+  const modal = document.createElement('div'); modal.className='modal'; modal.role='dialog';
+  // left media
+  const left = document.createElement('div');
+  const media = document.createElement('div'); media.className='media';
+  if(p.img){
+    const img = document.createElement('img'); img.src=p.img; img.alt=p.name;
+    media.appendChild(img);
+  } else {
+    media.innerHTML = `<svg width="420" height="320" viewBox="0 0 420 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${p.name}">
+      <rect width="100%" height="100%" fill="#fff"/>
+      <g fill="none" stroke="#e6eef2" stroke-width="1"><rect x="6" y="6" width="408" height="308" rx="6"></rect></g>
+      <text x="50%" y="50%" text-anchor="middle" fill="#cbd5e1" font-size="20" font-family="sans-serif">${p.name}</text>
+      <text x="50%" y="62%" text-anchor="middle" fill="#e6eef2" font-size="12" font-family="sans-serif">${p.category}</text>
+    </svg>`;
+  }
+  left.appendChild(media);
+
+  // right panel
+  const right = document.createElement('div');
+  const title = document.createElement('h3'); title.textContent = p.name; title.style.marginTop = 0;
+  right.appendChild(title);
+  const desc = document.createElement('p'); desc.className='muted-sm'; desc.textContent = p.desc;
+  right.appendChild(desc);
+
+  // price + minted info
+  const priceBox = document.createElement('div'); priceBox.style.marginTop = '12px';
+  const priceInfo = getPriceWithDiscount(p);
+  const priceHtml = p.minted ? `<div style="display:flex;gap:8px;align-items:end"><div class="price">${moneyCOP(priceInfo.finalPrice)}</div><div class="muted-sm strike">${moneyCOP(p.priceCOP)}</div></div>` : `<div class="price">${moneyCOP(p.priceCOP)}</div>`;
+  priceBox.innerHTML = priceHtml;
+  right.appendChild(priceBox);
+
+  // token info
+  const tokenInfo = document.createElement('div'); tokenInfo.style.marginTop='10px';
+  tokenInfo.innerHTML = p.minted ? `<div class="mono muted-sm">Token: ${p.tokenId}<br>Fingerprint: ${p.tokenMeta ? p.tokenMeta.fingerprint.slice(0,12)+'...' : '—'}</div>` : `<div class="muted-sm mono">NFT no emitido aún.</div>`;
+  right.appendChild(tokenInfo);
+
+  // buttons
+  const actions = document.createElement('div'); actions.style.marginTop='14px'; actions.style.display='flex'; actions.style.gap='8px';
+  const btnMint = document.createElement('button'); btnMint.className='btn small'; btnMint.textContent = p.minted ? 'Re-mint' : 'Mint / Emitir NFT';
+  btnMint.onclick = async ()=>{ await mintProduct(index); closeModal(); };
+  actions.appendChild(btnMint);
+
+  const btnBuy = document.createElement('button'); btnBuy.className='btn small ghost'; btnBuy.textContent = 'Comprar';
+  btnBuy.onclick = ()=>{ buyProduct(index); closeModal(); };
+  actions.appendChild(btnBuy);
+
+  const btnDownload = document.createElement('button'); btnDownload.className='btn small ghost'; btnDownload.textContent = 'Descargar metadata';
+  btnDownload.onclick = ()=>{
+    if(!p.minted){ alert('Aún no hay metadata. Mint antes de descargar.'); return; }
+    downloadFile(`${p.tokenId}.json`, JSON.stringify(p.tokenMeta, null, 2));
+  };
+  actions.appendChild(btnDownload);
+
+  right.appendChild(actions);
+
+  // extra panel: share / QR (simplificado) / transfer (simulado)
+  const extra = document.createElement('div'); extra.style.marginTop='12px';
+  extra.innerHTML = `
+    <div class="muted-sm">Opciones:</div>
+  `;
+  const transferBtn = document.createElement('button'); transferBtn.className='btn small ghost'; transferBtn.textContent='Transferir (simulado)';
+  transferBtn.onclick = ()=> transferModal(index);
+  extra.appendChild(transferBtn);
+
+  right.appendChild(extra);
+
+  modal.appendChild(left);
+  modal.appendChild(right);
+  back.appendChild(modal);
+  root.appendChild(back);
+
+  // focus trap minimal
+  btnMint.focus();
+}
+
+function closeModal(){
+  const root = document.getElementById('modalRoot'); root.innerHTML = '';
+}
+
+function transferModal(index){
+  const p = state.products[index];
+  if(!p.minted || !p.tokenId){ alert('Producto no disponible para transferir. Mint y compra primero.'); return; }
+  const to = prompt('Ingrese nombre de nuevo propietario (demo):');
+  if(!to) return;
+  // simular transferencia: quitar propiedad si está en holds y reasignar (demo: we only manage holds as names)
+  // find owner index (in demo, wallet holds array stores tokenIds for the current wallet only)
+  const had = state.wallet.holds.includes(p.tokenId);
+  if(had){
+    // remove from current wallet
+    state.wallet.holds = state.wallet.holds.filter(t => t !== p.tokenId);
+    // simulate that new owner will be external (no other wallets implemented). Log transfer.
+    logActivity(`Transfer: ${p.tokenId} transferido de ${state.wallet.name} a ${to} (simulado).`);
+    saveState();
+    renderAll();
+    alert('Transferencia simulada. Este demo no gestiona múltiples carteras; solo registra el evento.');
+  } else {
+    alert('No posees este token. Para transferir primero compra el NFT.');
+  }
+}
+
+/* ---------- Utilities: export all state ---------- */
+window.exportAll = function(){
+  downloadFile('mattelsa_shop_state.json', JSON.stringify(state, null, 2));
+  alert('Estado exportado.');
+};
+
+/* ---------- Boot ---------- */
+initSeed();
+
+/* ---------- Small keyboard shortcuts for demo ---------- */
+window.addEventListener('keydown', (e)=>{
+  if(e.key === 'E' && (e.ctrlKey || e.metaKey)){
+    e.preventDefault(); exportAll();
+  }
+});
+</script>
+</body>
+</html>
